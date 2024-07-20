@@ -1,47 +1,33 @@
-import { useEffect, useState } from "react";
 import { Cart, CartItem, User } from "../types/main.types";
 import CartService from "../services/cart";
+import { useQuery } from "@tanstack/react-query";
+import cartQueryKeys from "@/helpers/queryKeys/cart";
 
 type CartHookResponse = {
-  cart: Cart | null;
-  cartItems: CartItem[];
-  refresh: () => void;
+  cart?: Cart;
+  cartItems?: CartItem[];
 };
 
-const useCart = (user: User | null): CartHookResponse => {
-  const [cartData, setCartData] = useState<Cart | null>(null);
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+const useCart = (user: User | undefined): CartHookResponse => {
+  const { data: cart } = useQuery({
+    queryKey: cartQueryKeys.cart,
+    queryFn: async () => {
+      const data = await CartService.getUserCart(user?.id ?? "");
+      return data;
+    },
+    enabled: !!user,
+  });
 
-  async function getCartItems() {
-    const data = await CartService.getCartInfo(cartData?.id ?? "");
-    setCartItems(data);
-  }
+  const { data: cartItems } = useQuery({
+    queryKey: cartQueryKeys.cartItems,
+    queryFn: async () => {
+      const data = await CartService.getCartInfo(cart?.id ?? "");
+      return data;
+    },
+    enabled: !!cart,
+  });
 
-  async function getCart() {
-    const data = await CartService.getUserCart(user?.id ?? "");
-    setCartData(data);
-  }
-
-  async function refreshEntireCart() {
-    await getCart();
-    await getCartItems();
-  }
-
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
-      await getCart();
-    })();
-  }, [user]);
-
-  useEffect(() => {
-    if (!cartData) return;
-    (async () => {
-      await getCartItems();
-    })();
-  }, [cartData]);
-
-  return { cart: cartData, cartItems, refresh: refreshEntireCart };
+  return { cart, cartItems };
 };
 
 export default useCart;

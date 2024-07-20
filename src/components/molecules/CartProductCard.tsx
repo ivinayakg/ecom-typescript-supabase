@@ -2,33 +2,46 @@ import { useEffect, useState } from "react";
 import CartService from "../../services/cart";
 import { Cart, CartItem, Product, User } from "../../types/main.types";
 import productService from "../../services/products";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import productQueryKeys from "@/helpers/queryKeys/product";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import cartQueryKeys from "@/helpers/queryKeys/cart";
 
 type CartProductCardProps = {
-  user: User | null;
+  user?: User;
   cartInfo?: CartItem;
-  refresh: () => void;
-  cart: Cart | null;
+  cart?: Cart;
 };
 
 const CartProductCard = (props: CartProductCardProps) => {
-  const { user, cart, cartInfo, refresh } = props;
+  const { cart, cartInfo } = props;
+  const queryClient = useQueryClient();
 
   const productId = cartInfo?.product_id;
 
-  const [product, setProduct] = useState<Product | null>(null);
-
-  useEffect(() => {
-    if (!productId) return;
-    (async () => {
-      const data = await productService.getProductById(productId);
-      setProduct(data);
-    })();
-  }, [productId]);
+  const { data: product } = useQuery({
+    queryKey: productQueryKeys.product(productId ?? ""),
+    queryFn: async () => {
+      const data = await productService.getProductById(productId ?? "");
+      return data;
+    },
+    enabled: !!productId,
+  });
 
   const removeFromCart = async () => {
     if (!cart || !cartInfo) return;
     await CartService.removeItem(cartInfo.id, cart.id);
-    await refresh();
+    queryClient.invalidateQueries({
+      queryKey: cartQueryKeys.cartItems,
+    });
   };
 
   const incrementQuantity = async () => {
@@ -38,7 +51,9 @@ const CartProductCard = (props: CartProductCardProps) => {
       cart.id,
       cartInfo.quantity + 1
     );
-    await refresh();
+    queryClient.invalidateQueries({
+      queryKey: cartQueryKeys.cartItems,
+    });
   };
 
   const decrementQuantity = async () => {
@@ -53,27 +68,43 @@ const CartProductCard = (props: CartProductCardProps) => {
       await removeFromCart();
     }
 
-    await refresh();
+    queryClient.invalidateQueries({
+      queryKey: cartQueryKeys.cartItems,
+    });
   };
 
   return (
-    <div className="product-card">
-      {product && (
-        <>
-          <img src={product.image ?? ""} alt={product.title} />
-          <h3>{product.title}</h3>
-          <p>{product.description ?? "No Description"}</p>
-          <p>${product.price}</p>
-        </>
-      )}
-      {user && <button onClick={removeFromCart}>Remove From Cart</button>}
-      <div style={{ display: "flex", justifyContent: "center", gap: "2rem" }}>
-        {user && <button onClick={incrementQuantity}>+</button>}
-        {user && <button onClick={decrementQuantity}>-</button>}
-      </div>
-
-      {cartInfo && <p>Currenct Quantity {cartInfo.quantity}</p>}
-    </div>
+    <Card className="w-[350px]">
+      <CardHeader className="items-start p-4 gap-4">
+        {product && (
+          <>
+            {product.image && (
+              <img
+                src={product.image}
+                alt={product.title}
+                className="w-full object-cover h-[250px] rounded-[6px]"
+              />
+            )}
+            <CardTitle>
+              {product.title.charAt(0).toUpperCase() +
+                product.title.substring(1).toLowerCase()}
+            </CardTitle>
+            {product.description && product.description.length && (
+              <CardDescription>{product.description}</CardDescription>
+            )}
+            <CardContent className="p-0 flex flex-col items-start">
+              <p>${product.price}</p>
+              {cartInfo && <p>Currenct Quantity {cartInfo.quantity}</p>}
+            </CardContent>
+          </>
+        )}
+      </CardHeader>
+      <CardFooter className="justify-start p-4 gap-8">
+        <Button onClick={removeFromCart}>Remove From Cart</Button>
+        <Button onClick={incrementQuantity}>+</Button>
+        <Button onClick={decrementQuantity}>-</Button>
+      </CardFooter>
+    </Card>
   );
 };
 

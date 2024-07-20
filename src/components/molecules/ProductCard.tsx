@@ -1,33 +1,76 @@
+// import { useNavigate } from "react-router";
 import productService from "../../services/products";
 import { Cart, CartItem, Product, User } from "../../types/main.types";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useQueryClient } from "@tanstack/react-query";
+import productQueryKeys from "@/helpers/queryKeys/product";
+import cartQueryKeys from "@/helpers/queryKeys/cart";
 
 type ProductCardProps = {
   product: Product;
-  user: User | null;
-  cart: Cart | null;
+  user: User | undefined;
+  cart?: Cart;
   cartInfo?: CartItem;
-  refresh: () => void;
 };
 
 const ProductCard = (props: ProductCardProps) => {
-  const { product, user, cartInfo, refresh } = props;
+  const { product, user, cartInfo } = props;
+  // const navigate = useNavigate();
+
+  const queryClient = useQueryClient();
 
   const addToCartHanlder = async () => {
     if (!user) return;
     await productService.addToCart(product, user.id);
-    await refresh();
+
+    queryClient.invalidateQueries({
+      queryKey: productQueryKeys.products,
+    });
+    queryClient.invalidateQueries({
+      queryKey: cartQueryKeys.cartItems,
+    });
   };
 
   return (
-    <div className="product-card">
-      <img src={product.image ?? ""} alt={product.title} />
-      <h3>{product.title}</h3>
-      <p>{product.description ?? "No Description"}</p>
-      <p>${product.price}</p>
-      {user && <button onClick={addToCartHanlder}>Add to cart</button>}
-
-      {cartInfo && <p>Added to cart {cartInfo.quantity}</p>}
-    </div>
+    <Card className="w-[350px]">
+      <CardHeader className="items-start p-4 gap-4">
+        {product && (
+          <>
+            {product.image && (
+              <img
+                src={product.image}
+                alt={product.title}
+                className="w-full object-cover h-[250px] rounded-[6px]"
+              />
+            )}
+            <CardTitle>
+              {product.title.charAt(0).toUpperCase() +
+                product.title.substring(1).toLowerCase()}
+            </CardTitle>
+            {product.description && product.description.length && (
+              <CardDescription>{product.description}</CardDescription>
+            )}
+            <CardContent className="p-0">
+              <p>${product.price}</p>
+            </CardContent>
+          </>
+        )}
+      </CardHeader>
+      <CardFooter className="justify-start p-4 gap-8">
+        <Button variant="outline">Know More</Button>
+        <Button onClick={addToCartHanlder} disabled={!!cartInfo}>
+          Add To Cart
+        </Button>
+      </CardFooter>
+    </Card>
   );
 };
 

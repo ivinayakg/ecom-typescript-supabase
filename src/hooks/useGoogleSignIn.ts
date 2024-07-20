@@ -1,8 +1,6 @@
-import { useNavigate } from "react-router";
 import { supabase } from "../utility/supabase";
 
 export const useGoogleSignIn = () => {
-  const navigate = useNavigate();
   const signIn = async () => {
     return await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -16,7 +14,7 @@ export const useGoogleSignIn = () => {
     const res = await supabase.auth.signOut({
       scope: "global",
     });
-    if (!res.error) navigate(0);
+    if (!res.error) window.history.go(0);
   };
 
   return { signIn, signOut };
