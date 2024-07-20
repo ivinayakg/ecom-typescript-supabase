@@ -24,7 +24,8 @@ const CartService = {
       .from("cartItem")
       .select("*")
       .eq("cart_id", cartId)
-      .eq("product_id", productId);
+      .eq("product_id", productId)
+      .eq("status", "ACTIVE");
 
     if (existingCartItem.length) {
       const { data } = await supabase
@@ -68,6 +69,48 @@ const CartService = {
       .eq("status", status);
 
     return data[0];
+  },
+
+  getCartInfo: async (cartId: string): Promise<CartItem[]> => {
+    const { data } = await supabase
+      .from("cartItem")
+      .select("*")
+      .eq("cart_id", cartId)
+      .eq("status", "ACTIVE");
+
+    return data;
+  },
+
+  removeItem: async (cartItemId: string, cartId: string): Promise<void> => {
+    await supabase
+      .from("cartItem")
+      .update({ status: "REMOVED" })
+      .eq("id", cartItemId)
+      .eq("cart_id", cartId);
+  },
+
+  incrementQuantity: async (
+    cartItemId: string,
+    cartId: string,
+    quantity: number
+  ): Promise<void> => {
+    await supabase
+      .from("cartItem")
+      .update({ quantity })
+      .eq("id", cartItemId)
+      .eq("cart_id", cartId);
+  },
+
+  decrementQuantity: async (
+    cartItemId: string,
+    cartId: string,
+    quantity: number
+  ): Promise<void> => {
+    await supabase
+      .from("cartItem")
+      .update({ quantity })
+      .eq("id", cartItemId)
+      .eq("cart_id", cartId);
   },
 };
 

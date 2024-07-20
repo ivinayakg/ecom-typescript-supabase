@@ -1,35 +1,22 @@
-import { useEffect, useState } from "react";
 import productService from "../../services/products";
 import { Cart, CartItem, Product, User } from "../../types/main.types";
-import CartService from "../../services/cart";
 
 type ProductCardProps = {
   product: Product;
   user: User | null;
   cart: Cart | null;
+  cartInfo?: CartItem;
+  refresh: () => void;
 };
 
 const ProductCard = (props: ProductCardProps) => {
-  const { product, user, cart } = props;
-  const [cartStatus, setCartStatus] = useState<CartItem | null>(null);
+  const { product, user, cartInfo, refresh } = props;
 
   const addToCartHanlder = async () => {
     if (!user) return;
-    // Add product to cart
-    const data = await productService.addToCart(product, user.id);
-    setCartStatus(data);
+    await productService.addToCart(product, user.id);
+    await refresh();
   };
-
-  useEffect(() => {
-    if (!user || !cart) return;
-    (async () => {
-      const data = await CartService.getCartItem(cart.id, product.id);
-      setCartStatus(data);
-    })();
-  }, [user, cart]);
-
-  console.log(cartStatus);
-  
 
   return (
     <div className="product-card">
@@ -39,9 +26,7 @@ const ProductCard = (props: ProductCardProps) => {
       <p>${product.price}</p>
       {user && <button onClick={addToCartHanlder}>Add to cart</button>}
 
-      {cartStatus && cartStatus.status === "ACTIVE" && (
-        <p>Added to cart {cartStatus.quantity}</p>
-      )}
+      {cartInfo && <p>Added to cart {cartInfo.quantity}</p>}
     </div>
   );
 };
